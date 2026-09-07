@@ -1,6 +1,6 @@
 [app]
-title = Visual K-Map Solver
-package.name = visualkmap
+title = K-MAP Solver by Salman
+package.name = kmapsolverbysalman
 package.domain = org.kmap
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas

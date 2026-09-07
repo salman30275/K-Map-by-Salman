@@ -1,4 +1,4 @@
-name: Build K-MAP Solver APK
+name: Build APK
 
 on:
   push:
@@ -7,38 +7,24 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-22.04
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # Buildozer's Docker image handles the Android build environment.
-      # "yes" automatically accepts SDK licenses so the build does not stop
-      # before build-tools/AIDL are installed.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
       - name: Build APK with Buildozer
         uses: ArtemSBulgakov/buildozer-action@v1
         id: buildozer
         with:
-          command: yes | buildozer -v android debug
+          command: buildozer android debug
           buildozer_version: stable
 
-      - name: Rename APK
-        shell: bash
-        run: |
-          set -e
-          APK="$(find . -type f -name '*.apk' | head -n 1)"
-          if [ -z "$APK" ]; then
-            echo "No APK was produced."
-            exit 1
-          fi
-          mkdir -p release
-          cp "$APK" "release/K-MAP_Solver_by_Salman.apk"
-          echo "APK created: release/K-MAP_Solver_by_Salman.apk"
-
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: K-MAP-Solver-by-Salman
-          path: release/K-MAP_Solver_by_Salman.apk
-          if-no-files-found: error
+          name: package
+          path: ${{ steps.buildozer.outputs.filename }}

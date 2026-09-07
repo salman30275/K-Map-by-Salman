@@ -31,14 +31,40 @@ jobs:
           python -m pip install --upgrade pip
           pip install "buildozer>=1.6.0" "cython<3.4"
 
-      - name: Build debug APK
+      - name: Prepare Android SDK licenses
+        run: |
+          mkdir -p "$HOME/.buildozer/android/platform"
+          # Buildozer will install its Android SDK during the build.
+          # License acceptance is handled again after SDK setup if required.
+
+      - name: Build Android APK
         run: |
           buildozer -v android debug
+
+      - name: Accept licenses and retry if the first build failed
+        if: failure()
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+          SDKMANAGER=$(find "$SDK" -type f -name sdkmanager 2>/dev/null | head -n 1)
+          if [ -z "$SDKMANAGER" ]; then
+            echo "sdkmanager was not found at $SDK"
+            find "$HOME/.buildozer/android" -maxdepth 6 -type f -name sdkmanager 2>/dev/null || true
+            exit 1
+          fi
+          yes | "$SDKMANAGER" --licenses || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;37.0.0" || true
+          buildozer android clean
+          buildozer -v android debug
+
+      - name: Rename APK
+        run: |
+          APK=$(find bin -maxdepth 1 -type f -name "*.apk" | head -n 1)
+          test -n "$APK"
+          cp "$APK" "bin/K-MAP_Solver_by_Salman.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Visual-KMap-Solver-APK
-          path: bin/*.apk
+          name: K-MAP-Solver-by-Salman
+          path: bin/K-MAP_Solver_by_Salman.apk
           if-no-files-found: error
-

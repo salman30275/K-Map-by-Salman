@@ -24,8 +24,6 @@ jobs:
           pip install buildozer==1.5.0 cython==0.29.33
 
       - name: Build APK
-        env:
-          PIP_EXTRA_INDEX_URL: https://www.piwheels.org/simple
         run: |
           yes | buildozer android debug
 

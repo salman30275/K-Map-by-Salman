@@ -1,70 +1,44 @@
-name: Build Android APK
+name: Build K-MAP Solver APK
 
 on:
-  workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            git zip unzip openjdk-17-jdk \
-            autoconf automake libtool pkg-config \
-            build-essential ccache libffi-dev libssl-dev
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      # Buildozer's Docker image handles the Android build environment.
+      # "yes" automatically accepts SDK licenses so the build does not stop
+      # before build-tools/AIDL are installed.
+      - name: Build APK with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
         with:
-          python-version: "3.11"
-
-      - name: Install Buildozer
-        run: |
-          python -m pip install --upgrade pip
-          pip install "buildozer>=1.6.0" "cython<3.4"
-
-      - name: Prepare Android SDK licenses
-        run: |
-          mkdir -p "$HOME/.buildozer/android/platform"
-          # Buildozer will install its Android SDK during the build.
-          # License acceptance is handled again after SDK setup if required.
-
-      - name: Build Android APK
-        run: |
-          buildozer -v android debug
-
-      - name: Accept licenses and retry if the first build failed
-        if: failure()
-        run: |
-          SDK="$HOME/.buildozer/android/platform/android-sdk"
-          SDKMANAGER=$(find "$SDK" -type f -name sdkmanager 2>/dev/null | head -n 1)
-          if [ -z "$SDKMANAGER" ]; then
-            echo "sdkmanager was not found at $SDK"
-            find "$HOME/.buildozer/android" -maxdepth 6 -type f -name sdkmanager 2>/dev/null || true
-            exit 1
-          fi
-          yes | "$SDKMANAGER" --licenses || true
-          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;37.0.0" || true
-          buildozer android clean
-          buildozer -v android debug
+          command: yes | buildozer -v android debug
+          buildozer_version: stable
 
       - name: Rename APK
+        shell: bash
         run: |
-          APK=$(find bin -maxdepth 1 -type f -name "*.apk" | head -n 1)
-          test -n "$APK"
-          cp "$APK" "bin/K-MAP_Solver_by_Salman.apk"
+          set -e
+          APK="$(find . -type f -name '*.apk' | head -n 1)"
+          if [ -z "$APK" ]; then
+            echo "No APK was produced."
+            exit 1
+          fi
+          mkdir -p release
+          cp "$APK" "release/K-MAP_Solver_by_Salman.apk"
+          echo "APK created: release/K-MAP_Solver_by_Salman.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: K-MAP-Solver-by-Salman
-          path: bin/K-MAP_Solver_by_Salman.apk
+          path: release/K-MAP_Solver_by_Salman.apk
           if-no-files-found: error

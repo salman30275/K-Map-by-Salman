@@ -272,6 +272,20 @@ class KMapApp(App):
         inside.add_widget(self.result_box)
 
         root.add_widget(body)
+
+        # Developer credit shown at the bottom-right of the app.
+        credit = Label(
+            text="Developed by Salman  •  md.salmanfarsi.eee@gmail.com",
+            font_size=dp(9),
+            color=(0.35, 0.35, 0.35, 1),
+            halign="right",
+            valign="middle",
+            size_hint_y=None,
+            height=dp(24),
+        )
+        credit.bind(size=lambda instance, value: setattr(instance, "text_size", value))
+        root.add_widget(credit)
+
         self.create_table()
         return root
 
